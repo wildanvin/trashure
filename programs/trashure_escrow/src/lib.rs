@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke, system_instruction};
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkgMQVGt4sZ7D");
+declare_id!("3jyAWteaJfAmPFcn4kHSKJZCGt41nu4ZaDchvBsDFJdi");
 
 pub const STATUS_INITIALIZED: u8 = 0;
 pub const STATUS_FUNDED: u8 = 1;
@@ -35,16 +35,18 @@ pub mod trashure_escrow {
     }
 
     pub fn fund_escrow(ctx: Context<FundEscrow>) -> Result<()> {
-        let deal = &mut ctx.accounts.escrow_deal;
-
-        require!(deal.status == STATUS_INITIALIZED, EscrowError::InvalidStatus);
-        require_keys_eq!(deal.buyer, ctx.accounts.buyer.key(), EscrowError::Unauthorized);
+        let (escrow_key, price_lamports) = {
+            let deal = &ctx.accounts.escrow_deal;
+            require!(deal.status == STATUS_INITIALIZED, EscrowError::InvalidStatus);
+            require_keys_eq!(deal.buyer, ctx.accounts.buyer.key(), EscrowError::Unauthorized);
+            (deal.key(), deal.price_lamports)
+        };
 
         invoke(
             &system_instruction::transfer(
                 &ctx.accounts.buyer.key(),
-                &ctx.accounts.escrow_deal.key(),
-                deal.price_lamports,
+                &escrow_key,
+                price_lamports,
             ),
             &[
                 ctx.accounts.buyer.to_account_info(),
@@ -53,22 +55,22 @@ pub mod trashure_escrow {
             ],
         )?;
 
-        deal.status = STATUS_FUNDED;
+        ctx.accounts.escrow_deal.status = STATUS_FUNDED;
 
         Ok(())
     }
 
     pub fn settle_deal(ctx: Context<SettleDeal>) -> Result<()> {
-        let deal = &mut ctx.accounts.escrow_deal;
-
-        require!(deal.status == STATUS_FUNDED, EscrowError::InvalidStatus);
-        let authority = ctx.accounts.settlement_authority.key();
-        require!(
-            authority == deal.seller || authority == deal.agent,
-            EscrowError::Unauthorized
-        );
-
-        let (seller_payout, agent_fee) = compute_split(deal.price_lamports, deal.agent_fee_bps)?;
+        let (seller_payout, agent_fee) = {
+            let deal = &ctx.accounts.escrow_deal;
+            require!(deal.status == STATUS_FUNDED, EscrowError::InvalidStatus);
+            let authority = ctx.accounts.settlement_authority.key();
+            require!(
+                authority == deal.seller || authority == deal.agent,
+                EscrowError::Unauthorized
+            );
+            compute_split(deal.price_lamports, deal.agent_fee_bps)?
+        };
         let total = seller_payout
             .checked_add(agent_fee)
             .ok_or(EscrowError::ArithmeticOverflow)?;
@@ -83,7 +85,7 @@ pub mod trashure_escrow {
             .to_account_info()
             .add_lamports(agent_fee)?;
 
-        deal.status = STATUS_SETTLED;
+        ctx.accounts.escrow_deal.status = STATUS_SETTLED;
 
         Ok(())
     }

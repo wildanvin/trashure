@@ -15,5 +15,5 @@ export const env = {
   openAiModel: process.env.OPENAI_MODEL ?? "gpt-5-mini",
   solanaRpcUrl: process.env.SOLANA_RPC_URL ?? "https://api.devnet.solana.com",
   trashureProgramId:
-    process.env.NEXT_PUBLIC_TRASHURE_PROGRAM_ID ?? "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkgMQVGt4sZ7D"
+    process.env.NEXT_PUBLIC_TRASHURE_PROGRAM_ID ?? "3jyAWteaJfAmPFcn4kHSKJZCGt41nu4ZaDchvBsDFJdi"
 };

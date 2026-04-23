@@ -12,6 +12,49 @@ yarn dev
 
 Apply SQL from `supabase/migrations/` in your Supabase project before testing API routes.
 
+## Build and deploy Solana program (Devnet)
+
+```bash
+cd /home/daniel/projects/hackatons/colosseum/trashure0/programs/trashure_escrow
+
+# 1) Create deployer wallet once (skip if it already exists)
+solana-keygen new --outfile ~/.config/solana/id.json
+solana config set --keypair ~/.config/solana/id.json
+
+# 2) Use devnet and fund deployer
+solana config set --url https://api.devnet.solana.com
+solana airdrop 2 --url devnet
+
+# 3) Anchor workspace artifacts are written to ../target/deploy
+mkdir -p ../target/deploy
+test -f ../target/deploy/trashure_escrow-keypair.json || solana-keygen new --outfile ../target/deploy/trashure_escrow-keypair.json
+
+# 4) Sync that keypair's public key into Anchor.toml + declare_id!
+anchor keys sync
+
+# 5) Build and deploy
+anchor build
+anchor deploy --provider.cluster devnet
+
+# 6) Verify deployed program
+ls -lh ../target/deploy/trashure_escrow.so
+solana address -k ../target/deploy/trashure_escrow-keypair.json
+solana program show 3jyAWteaJfAmPFcn4kHSKJZCGt41nu4ZaDchvBsDFJdi --url devnet
+```
+
+Then set `NEXT_PUBLIC_TRASHURE_PROGRAM_ID` in `.env.local` to `3jyAWteaJfAmPFcn4kHSKJZCGt41nu4ZaDchvBsDFJdi`.
+
+Important: use `anchor build` (without `-v`). In Anchor CLI, `-v` means verifiable Docker build, not verbose logs.
+
+If `solana program show $PROGRAM_ID --url devnet` says `Unable to find the account`, redeploy explicitly and check again:
+
+```bash
+solana program deploy ../target/deploy/trashure_escrow.so \
+  --program-id ../target/deploy/trashure_escrow-keypair.json \
+  --url https://api.devnet.solana.com
+solana program show 3jyAWteaJfAmPFcn4kHSKJZCGt41nu4ZaDchvBsDFJdi --url https://api.devnet.solana.com
+```
+
 ## Implemented API routes
 
 - `POST /api/items` create item + mandate
