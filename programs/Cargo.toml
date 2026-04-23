@@ -1,0 +1,3 @@
+[workspace]
+members = ["trashure_escrow"]
+resolver = "2"

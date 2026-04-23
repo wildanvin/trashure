@@ -1,0 +1,16 @@
+[features]
+seeds = true
+skip-lint = false
+
+[programs.localnet]
+trashure_escrow = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkgMQVGt4sZ7D"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "Localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "anchor test"
